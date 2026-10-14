@@ -4,7 +4,8 @@ FROM python:3.11-slim as base
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=on
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PYTHONPATH=/app
 
 WORKDIR /app
 
@@ -19,11 +20,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source code
+# Copy application source code and entrypoint
 COPY . .
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose FastAPI default port
 EXPOSE 8000
+
+# Set entrypoint to initialize environment and dependencies
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Run FastAPI with Uvicorn
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

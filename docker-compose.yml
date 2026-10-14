@@ -9,16 +9,10 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+    env_file:
+      - .env
     environment:
-      - ENVIRONMENT=development
-      - DEBUG=true
-      - POSTGRES_SERVER=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=kisan_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - PYTHONPATH=/app
     depends_on:
       postgres:
         condition: service_healthy

@@ -45,7 +45,21 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         if self.DATABASE_URL:
-            return self.DATABASE_URL
+            url = self.DATABASE_URL
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif url.startswith("postgresql://"):
+                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            # asyncpg does not recognize channel_binding param
+            if "channel_binding=" in url:
+                import re
+                url = re.sub(r"[?&]channel_binding=[^&]*", "", url)
+                if "?" not in url and "&" in url:
+                    url = url.replace("&", "?", 1)
+            # asyncpg expects 'ssl' parameter instead of 'sslmode'
+            if "sslmode=" in url:
+                url = url.replace("sslmode=", "ssl=")
+            return url
         return (
             f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
@@ -53,8 +67,17 @@ class Settings(BaseSettings):
 
     @property
     def sync_database_url(self) -> str:
+        if self.DATABASE_URL:
+            url = self.DATABASE_URL
+            if url.startswith("postgresql+asyncpg://"):
+                url = url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+            elif url.startswith("postgresql://"):
+                url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            elif url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+            return url
         return (
-            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
+            f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
 
@@ -73,10 +96,8 @@ class Settings(BaseSettings):
             return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
-    # External APIs & LLMs (Placeholders for upcoming phases)
-    OPENAI_API_KEY: str | None = None
+    # LLM Settings
     GEMINI_API_KEY: str | None = None
-    ANTHROPIC_API_KEY: str | None = None
 
 
 @lru_cache
